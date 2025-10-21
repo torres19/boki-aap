@@ -1,0 +1,12 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "module": "amd",
+      "outFile": "./public/script.js",
+      "noEmit": false
+    },
+    "include": [
+      "src/web/**/*.ts"
+    ]
+  }
+  
