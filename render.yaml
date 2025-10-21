@@ -23,7 +23,7 @@ services:
       - key: STRIPE_PRICE_ID
         sync: false
   
-  - type: psql
+  - type: postgres # ★★★ "psql" から "postgres" に修正 ★★★
     name: boki-db
     plan: free
-
+    
