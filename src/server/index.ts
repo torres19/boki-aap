@@ -674,7 +674,7 @@ app.get('/api/analytics/genre/:genre', requireTeacher, async (req: express.Reque
                 u.username,
                 q.subgenre,
                 COUNT(a.id) as total_attempts,
-                SUM(CASE WHEN a.is_correct = TRUE THEN 1 ELSE 0 END) as correct_attempts
+                SUM(CASE WHEN is_correct = TRUE THEN 1 ELSE 0 END) as correct_attempts
             FROM users u
             CROSS JOIN (SELECT DISTINCT subgenre FROM quizzes WHERE genre = $1) as sg
             LEFT JOIN quizzes q ON sg.subgenre = q.subgenre AND q.genre = $1
@@ -839,3 +839,4 @@ const startServer = async () => {
 };
 
 startServer();
+

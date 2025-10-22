@@ -8,7 +8,7 @@
     "build:css": "tailwindcss -i ./src/web/style.css -o ./public/styles.css --minify",
     "build:server": "tsc --project tsconfig.json",
     "build": "npm run build:server && npm run build:js && npm run build:css",
-    "start": "node build/server/index.js",
+    "start": "node build/index.js",
     "dev:server": "ts-node-dev --respawn --transpile-only src/server/index.ts",
     "watch:js": "tsc --project tsconfig.web.json --watch",
     "watch:css": "tailwindcss -i ./src/web/style.css -o ./public/styles.css --watch",
