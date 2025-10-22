@@ -22,7 +22,7 @@ const pgPool = new Pool({
 const pgSession = connectPgSimple(session);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2020-08-27',
+    apiVersion: '2024-06-20', // ★★★ バージョンを更新 ★★★
 });
 
 const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID || 'price_YOUR_PRICE_ID';
