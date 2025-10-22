@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 // --- グローバル変数と状態管理 ---
 let state = {
     user: null,
@@ -44,10 +53,10 @@ const views = {
 const appHeader = document.getElementById('app-header');
 const feedbackModal = document.getElementById('feedback-modal');
 // --- 初期化処理 ---
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => __awaiter(void 0, void 0, void 0, function* () {
     setupEventListeners();
-    await checkSession();
-});
+    yield checkSession();
+}));
 // --- 画面表示制御 ---
 function showView(viewName) {
     if (!views[viewName]) {
@@ -63,66 +72,74 @@ function showView(viewName) {
     appHeader.classList.toggle('hidden', viewName === 'auth');
 }
 // --- API通信 ---
-async function apiFetch(endpoint, options = {}, onError = 'auth') {
-    try {
-        const response = await fetch(endpoint, options);
-        if (response.status === 401) {
-            document.getElementById('auth-error').textContent = '認証に失敗しました。再度ログインしてください。';
-            if (endpoint !== '/api/session') {
-                state.user = null;
-                showView('auth');
+function apiFetch(endpoint_1) {
+    return __awaiter(this, arguments, void 0, function* (endpoint, options = {}, onError = 'auth') {
+        try {
+            const response = yield fetch(endpoint, options);
+            if (response.status === 401) {
+                document.getElementById('auth-error').textContent = '認証に失敗しました。再度ログインしてください。';
+                if (endpoint !== '/api/session') {
+                    state.user = null;
+                    showView('auth');
+                }
+                return null;
+            }
+            if (!response.ok) {
+                const errorData = yield response.json().catch(() => ({ error: '不明なエラーが発生しました。' }));
+                throw new Error(errorData.error || 'APIエラーが発生しました。');
+            }
+            if (response.status === 204) {
+                return {};
+            }
+            const text = yield response.text();
+            return text ? JSON.parse(text) : {};
+        }
+        catch (error) {
+            console.error('API Fetch Error:', error.message);
+            if (onError === 'auth') {
+                const errorEl = document.getElementById('auth-error');
+                if (errorEl)
+                    errorEl.textContent = error.message;
+            }
+            else if (onError === 'alert') {
+                alert(error.message);
             }
             return null;
         }
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: '不明なエラーが発生しました。' }));
-            throw new Error(errorData.error || 'APIエラーが発生しました。');
-        }
-        if (response.status === 204) {
-            return {};
-        }
-        const text = await response.text();
-        return text ? JSON.parse(text) : {};
-    }
-    catch (error) {
-        console.error('API Fetch Error:', error.message);
-        if (onError === 'auth') {
-            const errorEl = document.getElementById('auth-error');
-            if (errorEl)
-                errorEl.textContent = error.message;
-        }
-        else if (onError === 'alert') {
-            alert(error.message);
-        }
-        return null;
-    }
+    });
 }
 // --- 初期データ読み込み ---
-async function checkSession() {
-    const data = await apiFetch('/api/session');
-    if (data && data.user) {
-        state.user = data.user;
-        await Promise.all([loadQuizzes(), loadAccountOptions()]);
-        updateHeader();
-        showView('mainGenre');
-    }
-    else {
-        showView('auth');
-    }
+function checkSession() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const data = yield apiFetch('/api/session');
+        if (data && data.user) {
+            state.user = data.user;
+            yield Promise.all([loadQuizzes(), loadAccountOptions()]);
+            updateHeader();
+            showView('mainGenre');
+        }
+        else {
+            showView('auth');
+        }
+    });
 }
-async function loadQuizzes() {
-    const data = await apiFetch('/api/quizzes');
-    if (data) {
-        state.quizzes = data;
-        renderMainGenreView();
-    }
+function loadQuizzes() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const data = yield apiFetch('/api/quizzes');
+        if (data) {
+            state.quizzes = data;
+            renderMainGenreView();
+        }
+    });
 }
-async function loadAccountOptions() {
-    const data = await apiFetch('/api/accounts');
-    if (data) {
-        state.accountOptions = data;
-        state.accountOptions.sort((a, b) => a.reading.localeCompare(b.reading, 'ja'));
-    }
+function loadAccountOptions() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const data = yield apiFetch('/api/accounts');
+        if (data) {
+            state.accountOptions = data;
+            state.accountOptions.sort((a, b) => a.reading.localeCompare(b.reading, 'ja'));
+        }
+    });
 }
 function updateHeader() {
     if (state.user) {
@@ -135,30 +152,30 @@ function setupEventListeners() {
     document.getElementById('header-title').addEventListener('click', () => { if (state.user)
         showView('mainGenre'); });
     document.querySelectorAll('.auth-tab').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('auth-tab-active')); tab.classList.add('auth-tab-active'); const isLogin = tab.dataset.tab === 'login'; document.getElementById('login-form').classList.toggle('hidden', !isLogin); document.getElementById('register-form').classList.toggle('hidden', isLogin); document.getElementById('auth-error').textContent = ''; }));
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
+    document.getElementById('login-form').addEventListener('submit', (e) => __awaiter(this, void 0, void 0, function* () {
         e.preventDefault();
         const username = document.getElementById('login-username').value;
         const password = document.getElementById('login-password').value;
-        const data = await apiFetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        const data = yield apiFetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
         if (data && data.user) {
             state.user = data.user;
-            await Promise.all([loadQuizzes(), loadAccountOptions()]);
+            yield Promise.all([loadQuizzes(), loadAccountOptions()]);
             updateHeader();
             showView('mainGenre');
         }
-    });
-    document.getElementById('register-form').addEventListener('submit', async (e) => {
+    }));
+    document.getElementById('register-form').addEventListener('submit', (e) => __awaiter(this, void 0, void 0, function* () {
         e.preventDefault();
         const username = document.getElementById('register-username').value;
         const password = document.getElementById('register-password').value;
-        const data = await apiFetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        const data = yield apiFetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
         if (data) {
             alert('登録が完了しました。ログインしてください。');
             document.querySelector('.auth-tab[data-tab="login"]').click();
             document.getElementById('register-form').reset();
         }
-    });
-    document.getElementById('logout-btn').addEventListener('click', async () => { await apiFetch('/api/logout', { method: 'POST' }); state.user = null; showView('auth'); });
+    }));
+    document.getElementById('logout-btn').addEventListener('click', () => __awaiter(this, void 0, void 0, function* () { yield apiFetch('/api/logout', { method: 'POST' }); state.user = null; showView('auth'); }));
     document.getElementById('show-profile-btn').addEventListener('click', showProfile);
     document.getElementById('back-to-selection-from-profile').addEventListener('click', () => showView('mainGenre'));
     document.getElementById('back-to-main-genre-btn').addEventListener('click', () => showView('mainGenre'));
@@ -220,6 +237,7 @@ function setupEventListeners() {
 }
 // --- 画面描画ロジック ---
 function renderMainGenreView() {
+    var _a;
     const container = document.getElementById('main-genre-container');
     container.innerHTML = '';
     const groupedByGenre = state.quizzes.reduce((acc, quiz) => { (acc[quiz.genre] = acc[quiz.genre] || []).push(quiz); return acc; }, {});
@@ -239,7 +257,7 @@ function renderMainGenreView() {
         card.addEventListener('click', () => showSubgenreView(genre));
         container.appendChild(card);
     });
-    const userRole = state.user?.role;
+    const userRole = (_a = state.user) === null || _a === void 0 ? void 0 : _a.role;
     document.getElementById('teacher-menu-container').classList.toggle('hidden', userRole !== 'teacher' && userRole !== 'admin');
     document.getElementById('admin-menu-container').classList.toggle('hidden', userRole !== 'admin');
 }
@@ -254,7 +272,8 @@ function showSubgenreView(genre) {
         btn.className = 'list-btn';
         btn.innerHTML = `<span>${subgenre}</span><span class="list-btn-arrow">&rsaquo;</span>`;
         btn.addEventListener('click', () => {
-            if (state.user?.role === 'teacher' || state.user?.role === 'admin') {
+            var _a, _b;
+            if (((_a = state.user) === null || _a === void 0 ? void 0 : _a.role) === 'teacher' || ((_b = state.user) === null || _b === void 0 ? void 0 : _b.role) === 'admin') {
                 showGenreAnalytics(genre, subgenre);
             }
             else {
@@ -265,16 +284,18 @@ function showSubgenreView(genre) {
     });
     showView('subgenre');
 }
-async function showQuestionListView(genre, subgenre) {
-    state.currentQuiz.currentGenre = genre;
-    state.currentQuiz.currentSubgenre = subgenre;
-    document.getElementById('question-list-title').textContent = subgenre;
-    const questions = await apiFetch(`/api/subgenres/${encodeURIComponent(genre)}/${encodeURIComponent(subgenre)}/questions`, {}, 'alert');
-    if (questions) {
-        state.currentQuiz.questionList = questions;
-        renderQuestionListView();
-        showView('questionList');
-    }
+function showQuestionListView(genre, subgenre) {
+    return __awaiter(this, void 0, void 0, function* () {
+        state.currentQuiz.currentGenre = genre;
+        state.currentQuiz.currentSubgenre = subgenre;
+        document.getElementById('question-list-title').textContent = subgenre;
+        const questions = yield apiFetch(`/api/subgenres/${encodeURIComponent(genre)}/${encodeURIComponent(subgenre)}/questions`, {}, 'alert');
+        if (questions) {
+            state.currentQuiz.questionList = questions;
+            renderQuestionListView();
+            showView('questionList');
+        }
+    });
 }
 function getFilteredQuestions() {
     const { questionList, currentFilter } = state.currentQuiz;
@@ -335,53 +356,59 @@ function renderQuestionListView() {
         container.appendChild(card);
     });
 }
-async function toggleFavorite(quizId) {
-    const result = await apiFetch(`/api/quizzes/${quizId}/toggle_favorite`, { method: 'POST' });
-    if (result) {
-        const targetQuiz = state.currentQuiz.questionList.find(q => q.id === quizId);
-        if (targetQuiz) {
-            targetQuiz.is_favorite = result.is_favorite;
-            renderQuestionListView();
+function toggleFavorite(quizId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const result = yield apiFetch(`/api/quizzes/${quizId}/toggle_favorite`, { method: 'POST' });
+        if (result) {
+            const targetQuiz = state.currentQuiz.questionList.find(q => q.id === quizId);
+            if (targetQuiz) {
+                targetQuiz.is_favorite = result.is_favorite;
+                renderQuestionListView();
+            }
+            if (result.newlyUnlocked && result.newlyUnlocked.length > 0) {
+                result.newlyUnlocked.forEach((ach) => showAchievementToast(ach));
+            }
         }
-        if (result.newlyUnlocked && result.newlyUnlocked.length > 0) {
-            result.newlyUnlocked.forEach((ach) => showAchievementToast(ach));
+    });
+}
+function startQuiz() {
+    return __awaiter(this, arguments, void 0, function* (mode = 'sequential', singleQuizId = null) {
+        let questionsToAsk;
+        if (singleQuizId) {
+            questionsToAsk = state.currentQuiz.questionList.filter(q => q.id === singleQuizId);
         }
-    }
+        else {
+            questionsToAsk = getFilteredQuestions();
+        }
+        if (questionsToAsk.length === 0) {
+            alert('対象の問題がありません。');
+            return;
+        }
+        if (mode === 'random' && !singleQuizId) {
+            questionsToAsk = [...questionsToAsk].sort(() => Math.random() - 0.5);
+        }
+        const { studySessionId } = yield apiFetch('/api/study_session/start', { method: 'POST' });
+        if (studySessionId) {
+            state.currentQuiz.studySessionId = studySessionId;
+        }
+        state.currentQuiz.questions = questionsToAsk.map(item => state.quizzes.find(q => q.id === item.id));
+        state.currentQuiz.index = 0;
+        state.currentQuiz.score = 0;
+        showView('quiz');
+        renderQuiz();
+    });
 }
-async function startQuiz(mode = 'sequential', singleQuizId = null) {
-    let questionsToAsk;
-    if (singleQuizId) {
-        questionsToAsk = state.currentQuiz.questionList.filter(q => q.id === singleQuizId);
-    }
-    else {
-        questionsToAsk = getFilteredQuestions();
-    }
-    if (questionsToAsk.length === 0) {
-        alert('対象の問題がありません。');
-        return;
-    }
-    if (mode === 'random' && !singleQuizId) {
-        questionsToAsk = [...questionsToAsk].sort(() => Math.random() - 0.5);
-    }
-    const { studySessionId } = await apiFetch('/api/study_session/start', { method: 'POST' });
-    if (studySessionId) {
-        state.currentQuiz.studySessionId = studySessionId;
-    }
-    state.currentQuiz.questions = questionsToAsk.map(item => state.quizzes.find(q => q.id === item.id));
-    state.currentQuiz.index = 0;
-    state.currentQuiz.score = 0;
-    showView('quiz');
-    renderQuiz();
-}
-async function endStudySession() {
-    if (state.currentQuiz.studySessionId) {
-        await apiFetch('/api/study_session/end', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ studySessionId: state.currentQuiz.studySessionId })
-        });
-        state.currentQuiz.studySessionId = null;
-    }
+function endStudySession() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (state.currentQuiz.studySessionId) {
+            yield apiFetch('/api/study_session/end', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ studySessionId: state.currentQuiz.studySessionId })
+            });
+            state.currentQuiz.studySessionId = null;
+        }
+    });
 }
 function renderQuiz() {
     const { questions, index } = state.currentQuiz;
@@ -398,32 +425,34 @@ function renderQuiz() {
     loadAnswer('debit-entries-quiz', []);
     loadAnswer('credit-entries-quiz', []);
 }
-async function handleCheckAnswer() {
-    const userAnswer = { debits: getUserEntries('debit-entries-quiz'), credits: getUserEntries('credit-entries-quiz') };
-    if (userAnswer.debits.length === 0 && userAnswer.credits.length === 0) {
-        alert('解答を入力してください。');
-        return;
-    }
-    const currentQuestion = state.currentQuiz.questions[state.currentQuiz.index];
-    const result = await apiFetch('/api/submit_answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            quiz_id: currentQuestion.id,
-            user_answer: userAnswer,
-            questionsInSession: state.currentQuiz.questions.length,
-            score: state.currentQuiz.score,
-        })
+function handleCheckAnswer() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const userAnswer = { debits: getUserEntries('debit-entries-quiz'), credits: getUserEntries('credit-entries-quiz') };
+        if (userAnswer.debits.length === 0 && userAnswer.credits.length === 0) {
+            alert('解答を入力してください。');
+            return;
+        }
+        const currentQuestion = state.currentQuiz.questions[state.currentQuiz.index];
+        const result = yield apiFetch('/api/submit_answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                quiz_id: currentQuestion.id,
+                user_answer: userAnswer,
+                questionsInSession: state.currentQuiz.questions.length,
+                score: state.currentQuiz.score,
+            })
+        });
+        if (result) {
+            if (result.is_correct) {
+                state.currentQuiz.score++;
+            }
+            if (result.newlyUnlocked && result.newlyUnlocked.length > 0) {
+                result.newlyUnlocked.forEach((ach) => showAchievementToast(ach));
+            }
+            showFeedbackModal(result);
+        }
     });
-    if (result) {
-        if (result.is_correct) {
-            state.currentQuiz.score++;
-        }
-        if (result.newlyUnlocked && result.newlyUnlocked.length > 0) {
-            result.newlyUnlocked.forEach((ach) => showAchievementToast(ach));
-        }
-        showFeedbackModal(result);
-    }
 }
 function showFeedbackModal(result) {
     const content = document.getElementById('feedback-content');
@@ -436,7 +465,7 @@ function showFeedbackModal(result) {
         </div>
         <div class="bg-slate-100 p-4 rounded-b-xl text-right"><button id="next-question-btn" class="main-btn !w-auto">${state.currentQuiz.index === state.currentQuiz.questions.length - 1 ? '結果を見る' : '次の問題へ'}</button></div>
     `;
-    document.getElementById('next-question-btn').addEventListener('click', async () => {
+    document.getElementById('next-question-btn').addEventListener('click', () => __awaiter(this, void 0, void 0, function* () {
         feedbackModal.classList.add('hidden');
         content.classList.remove('opacity-100', 'translate-y-0');
         content.classList.add('opacity-0', '-translate-y-4');
@@ -445,10 +474,10 @@ function showFeedbackModal(result) {
             renderQuiz();
         }
         else {
-            await endStudySession();
+            yield endStudySession();
             showResultsView();
         }
-    });
+    }));
     feedbackModal.classList.remove('hidden');
     setTimeout(() => { content.classList.remove('opacity-0', '-translate-y-4'); content.classList.add('opacity-100', 'translate-y-0'); }, 10);
 }
@@ -465,10 +494,12 @@ function showResultsView() {
         message = "もう少しでした！復習して再挑戦してみましょう。";
     document.getElementById('score-message').textContent = message;
 }
-async function showProfile() { const profileData = await apiFetch('/api/profile'); if (profileData) {
-    renderProfile(profileData);
-    showView('profile');
-} }
+function showProfile() {
+    return __awaiter(this, void 0, void 0, function* () { const profileData = yield apiFetch('/api/profile'); if (profileData) {
+        renderProfile(profileData);
+        showView('profile');
+    } });
+}
 function renderProfile(data) {
     document.getElementById('profile-username').textContent = data.username;
     document.getElementById('profile-level').textContent = data.level;
@@ -492,12 +523,14 @@ function renderProfile(data) {
         document.getElementById('subscription-actions-container').classList.remove('hidden');
     }
 }
-async function showAnalyticsDashboardView() {
-    const data = await apiFetch('/api/analytics/dashboard');
-    if (data) {
-        renderAnalyticsDashboard(data);
-        showView('analyticsDashboard');
-    }
+function showAnalyticsDashboardView() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const data = yield apiFetch('/api/analytics/dashboard');
+        if (data) {
+            renderAnalyticsDashboard(data);
+            showView('analyticsDashboard');
+        }
+    });
 }
 function renderAnalyticsDashboard(data) {
     const { summary, mistakeRanking, studentGrowth, dailyAttempts } = data;
@@ -583,11 +616,13 @@ function renderAnalyticsDashboard(data) {
         }
     });
 }
-async function showStudentList() { const analyticsData = await apiFetch('/api/analytics/by_student'); if (analyticsData) {
-    state.analytics.allData = analyticsData;
-    renderStudentList(analyticsData);
-    showView('studentList');
-} }
+function showStudentList() {
+    return __awaiter(this, void 0, void 0, function* () { const analyticsData = yield apiFetch('/api/analytics/by_student'); if (analyticsData) {
+        state.analytics.allData = analyticsData;
+        renderStudentList(analyticsData);
+        showView('studentList');
+    } });
+}
 function renderStudentList(data) { const container = document.getElementById('student-list-container'); container.innerHTML = ''; const students = Object.keys(data); if (students.length === 0) {
     container.innerHTML = '<p class="text-center text-gray-500 col-span-full">まだ学生の解答データがありません。</p>';
     return;
@@ -600,30 +635,36 @@ function renderStudentGenres(username) { document.getElementById('student-genre-
     totalAttempts += genreSubgenres[sub].attempts;
     totalCorrects += genreSubgenres[sub].corrects;
 } const genreSuccessRate = (totalAttempts > 0) ? (totalCorrects / totalAttempts) * 100 : 0; const button = document.createElement('button'); button.className = 'genre-card'; button.innerHTML = `<span class="genre-card-title">${genre}</span><span class="progress-badge" style="background-color: hsl(${genreSuccessRate}, 80%, 85%); color: hsl(${genreSuccessRate}, 80%, 25%);">正答率 ${genreSuccessRate.toFixed(0)}%</span>`; button.addEventListener('click', () => { state.analytics.detailViewSource = 'studentGenre'; showStudentGenreDetail(genre); }); container.appendChild(button); }); }
-async function showStudentGenreDetail(genre, username = state.analytics.selectedStudent) { const attemptData = await apiFetch(`/api/analytics/${username}?genre=${encodeURIComponent(genre)}`); if (attemptData) {
-    renderStudentDetail(username, genre, attemptData);
-    showView('studentDetail');
-} }
+function showStudentGenreDetail(genre_1) {
+    return __awaiter(this, arguments, void 0, function* (genre, username = state.analytics.selectedStudent) { const attemptData = yield apiFetch(`/api/analytics/${username}?genre=${encodeURIComponent(genre)}`); if (attemptData) {
+        renderStudentDetail(username, genre, attemptData);
+        showView('studentDetail');
+    } });
+}
 function renderStudentDetail(username, genre, attempts) { document.getElementById('student-detail-title').textContent = `${username}さん - ${genre}`; const tbody = document.getElementById('student-detail-tbody'); tbody.innerHTML = ''; if (attempts.length === 0) {
     tbody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-500 py-4">解答履歴がありません。</td></tr>';
     return;
 } attempts.forEach(attempt => { const date = new Date(attempt.timestamp); const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; const resultHtml = attempt.is_correct ? '<span class="text-green-600 font-bold">正解</span>' : '<span class="text-red-600 font-bold">不正解</span>'; const row = document.createElement('tr'); row.innerHTML = `<td class="px-4 py-2">${formattedDate}</td><td class="px-4 py-2"><p class="w-64 truncate" title="${attempt.question}">${attempt.question}</p></td><td class="px-4 py-2 text-center">${resultHtml}</td>`; tbody.appendChild(row); }); }
-async function showGenreAnalytics(genre, subgenre) { state.analytics.selectedGenre = genre; const analyticsData = await apiFetch(`/api/analytics/genre/${encodeURIComponent(genre)}`); if (analyticsData) {
-    renderGenreAnalytics(genre, analyticsData);
-    showView('genreAnalytics');
-} }
+function showGenreAnalytics(genre, subgenre) {
+    return __awaiter(this, void 0, void 0, function* () { state.analytics.selectedGenre = genre; const analyticsData = yield apiFetch(`/api/analytics/genre/${encodeURIComponent(genre)}`); if (analyticsData) {
+        renderGenreAnalytics(genre, analyticsData);
+        showView('genreAnalytics');
+    } });
+}
 function renderGenreAnalytics(genre, data) { document.getElementById('genre-analytics-title').textContent = `${genre} - 学生の進捗`; const tbody = document.getElementById('genre-analytics-tbody'); tbody.innerHTML = ''; const studentsData = Object.entries(data); if (studentsData.length === 0) {
     tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500 py-4">このジャンルを解答した学生はまだいません。</td></tr>';
     return;
 } studentsData.forEach(([username, subgenres]) => { Object.entries(subgenres).forEach(([subgenre, stats]) => { const successRate = stats.total_attempts > 0 ? (stats.correct_attempts / stats.total_attempts) * 100 : 0; const row = document.createElement('tr'); row.className = 'cursor-pointer hover:bg-slate-50'; row.innerHTML = `<td class="px-4 py-2">${username}</td><td class="px-4 py-2">${subgenre}</td><td class="px-4 py-2"><span class="progress-badge" style="color: hsl(${successRate}, 80%, 35%);">${successRate.toFixed(0)}%</span></td><td class="px-4 py-2">${stats.correct_attempts} / ${stats.total_attempts}</td>`; row.addEventListener('click', () => { state.analytics.detailViewSource = 'genreAnalytics'; alert(`${username}さんの「${subgenre}」の詳細履歴を表示します。（実装予定）`); }); tbody.appendChild(row); }); }); }
-async function handleCreateSubmit(event) { event.preventDefault(); const genreType = document.querySelector('input[name="genre-type"]:checked').value; let genre = genreType === 'existing' ? document.getElementById('new-genre-select').value : document.getElementById('new-genre-input').value.trim(); const subgenreType = document.querySelector('input[name="subgenre-type"]:checked').value; let subgenre = subgenreType === 'existing' ? document.getElementById('new-subgenre-select').value : document.getElementById('new-subgenre-input').value.trim(); const question = document.getElementById('new-question').value.trim(); const explanation = document.getElementById('new-explanation').value.trim(); const newAnswer = { debits: getUserEntries('debit-entries-create'), credits: getUserEntries('credit-entries-create') }; if (!genre || !subgenre || !question || newAnswer.debits.length === 0 || newAnswer.credits.length === 0) {
-    alert("ジャンル、小ジャンル、問題文、答えは必須です。");
-    return;
-} const newQuizData = { genre, subgenre, question, answer: newAnswer, explanation }; const result = await apiFetch('/api/quizzes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newQuizData) }); if (result) {
-    alert('新しい問題が保存されました！');
-    await loadQuizzes();
-    showView('mainGenre');
-} }
+function handleCreateSubmit(event) {
+    return __awaiter(this, void 0, void 0, function* () { event.preventDefault(); const genreType = document.querySelector('input[name="genre-type"]:checked').value; let genre = genreType === 'existing' ? document.getElementById('new-genre-select').value : document.getElementById('new-genre-input').value.trim(); const subgenreType = document.querySelector('input[name="subgenre-type"]:checked').value; let subgenre = subgenreType === 'existing' ? document.getElementById('new-subgenre-select').value : document.getElementById('new-subgenre-input').value.trim(); const question = document.getElementById('new-question').value.trim(); const explanation = document.getElementById('new-explanation').value.trim(); const newAnswer = { debits: getUserEntries('debit-entries-create'), credits: getUserEntries('credit-entries-create') }; if (!genre || !subgenre || !question || newAnswer.debits.length === 0 || newAnswer.credits.length === 0) {
+        alert("ジャンル、小ジャンル、問題文、答えは必須です。");
+        return;
+    } const newQuizData = { genre, subgenre, question, answer: newAnswer, explanation }; const result = yield apiFetch('/api/quizzes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newQuizData) }); if (result) {
+        alert('新しい問題が保存されました！');
+        yield loadQuizzes();
+        showView('mainGenre');
+    } });
+}
 function setupCreateForm() { ['debit-entries-create', 'credit-entries-create'].forEach(id => { document.getElementById(id).innerHTML = ''; addEntryRow(id); }); document.getElementById('create-form').reset(); document.getElementById('new-genre-select').classList.remove('hidden'); document.getElementById('new-genre-input').classList.add('hidden'); populateCreateGenreSelect(); const initialGenre = document.getElementById('new-genre-select').value; populateSubgenreSelect('new-subgenre-select', initialGenre); const subgenreRadio = document.querySelector('input[name="subgenre-type"][value="existing"]'); subgenreRadio.checked = true; subgenreRadio.dispatchEvent(new Event('change')); }
 function populateCreateGenreSelect() { const select = document.getElementById('new-genre-select'); select.innerHTML = ''; const defaultOption = document.createElement('option'); defaultOption.value = ""; defaultOption.textContent = "ジャンルを選択してください"; select.appendChild(defaultOption); const genreOrder = ["日商簿記3級", "日商簿記2級", "日商簿記1級", "全経3級", "全経2級", "全経1級"]; const availableGenres = [...new Set(state.quizzes.map(q => q.genre))]; const sortedGenres = genreOrder.filter(g => availableGenres.includes(g)); availableGenres.forEach(genre => { if (!sortedGenres.includes(genre))
     sortedGenres.push(genre); }); sortedGenres.forEach(genre => { const option = document.createElement('option'); option.value = genre; option.textContent = genre; select.appendChild(option); }); }
@@ -636,7 +677,9 @@ function populateSubgenreSelect(selectElementId, genre) { const select = documen
 else {
     subgenres.forEach(sub => { const option = document.createElement('option'); option.value = sub; option.textContent = sub; select.appendChild(option); });
 } }
-async function showEditListView() { await loadQuizzes(); renderEditListView(); showView('editList'); }
+function showEditListView() {
+    return __awaiter(this, void 0, void 0, function* () { yield loadQuizzes(); renderEditListView(); showView('editList'); });
+}
 function renderEditListView() { const container = document.getElementById('edit-list-container'); container.innerHTML = ''; const groupedQuizzes = state.quizzes.reduce((acc, quiz) => { (acc[quiz.genre] = acc[quiz.genre] || []).push(quiz); return acc; }, {}); const genreOrder = ["日商簿記3級", "日商簿記2級", "日商簿記1級", "全経3級", "全経2級", "全経1級"]; const sortedGenres = Object.keys(groupedQuizzes).sort((a, b) => { const indexA = genreOrder.indexOf(a); const indexB = genreOrder.indexOf(b); if (indexA !== -1 && indexB !== -1)
     return indexA - indexB; if (indexA !== -1)
     return -1; if (indexB !== -1)
@@ -644,14 +687,16 @@ function renderEditListView() { const container = document.getElementById('edit-
     container.innerHTML = '<p class="text-center text-gray-500">編集できる問題がありません。</p>';
     return;
 } sortedGenres.forEach(genre => { const genreSection = document.createElement('div'); const title = document.createElement('h3'); title.className = 'edit-list-genre-title'; title.textContent = genre; genreSection.appendChild(title); groupedQuizzes[genre].forEach(quiz => { const item = document.createElement('div'); item.className = 'edit-list-item'; item.innerHTML = `<p><strong>${quiz.subgenre}:</strong> ${quiz.question}</p><div class="edit-list-actions flex space-x-2"><button class="edit-btn" data-id="${quiz.id}">編集</button><button class="delete-btn-list" data-id="${quiz.id}">削除</button></div>`; item.querySelector('.edit-btn').addEventListener('click', (e) => showEditQuizView(e.target.dataset.id)); item.querySelector('.delete-btn-list').addEventListener('click', (e) => handleDeleteQuiz(e.target.dataset.id)); genreSection.appendChild(item); }); container.appendChild(genreSection); }); }
-async function showEditQuizView(quizId) { if (!quizId) {
-    console.error("編集ボタンに問題IDがありません。");
-    alert("問題データの読み込みに失敗しました。");
-    return;
-} const quizData = await apiFetch(`/api/quizzes/${quizId}`); if (quizData && quizData.id) {
-    populateEditForm(quizData);
-    showView('editQuiz');
-} }
+function showEditQuizView(quizId) {
+    return __awaiter(this, void 0, void 0, function* () { if (!quizId) {
+        console.error("編集ボタンに問題IDがありません。");
+        alert("問題データの読み込みに失敗しました。");
+        return;
+    } const quizData = yield apiFetch(`/api/quizzes/${quizId}`); if (quizData && quizData.id) {
+        populateEditForm(quizData);
+        showView('editQuiz');
+    } });
+}
 function populateEditForm(quiz) { document.getElementById('edit-quiz-id').value = String(quiz.id); document.getElementById('edit-question').value = quiz.question; document.getElementById('edit-explanation').value = quiz.explanation || ''; const genreSelect = document.getElementById('edit-genre-select'); genreSelect.innerHTML = ''; const availableGenres = [...new Set(state.quizzes.map(q => q.genre))]; availableGenres.forEach(g => { const option = document.createElement('option'); option.value = g; option.textContent = g; genreSelect.appendChild(option); }); genreSelect.value = quiz.genre; populateSubgenreSelect('edit-subgenre-select', quiz.genre); const subgenreSelect = document.getElementById('edit-subgenre-select'); const subgenreExists = [...subgenreSelect.options].some(opt => opt.value === quiz.subgenre); if (subgenreExists) {
     document.querySelector('input[name="edit-subgenre-type"][value="existing"]').checked = true;
     subgenreSelect.value = quiz.subgenre;
@@ -660,19 +705,23 @@ else {
     document.querySelector('input[name="edit-subgenre-type"][value="new"]').checked = true;
     document.getElementById('edit-subgenre-input').value = quiz.subgenre;
 } const activeRadio = document.querySelector('input[name="edit-subgenre-type"]:checked'); activeRadio.dispatchEvent(new Event('change')); loadAnswer('debit-entries-edit', quiz.answer.debits); loadAnswer('credit-entries-edit', quiz.answer.credits); }
-async function handleUpdateQuiz(event) { event.preventDefault(); const quizId = document.getElementById('edit-quiz-id').value; const subgenreType = document.querySelector('input[name="edit-subgenre-type"]:checked').value; let subgenre = subgenreType === 'existing' ? document.getElementById('edit-subgenre-select').value : document.getElementById('edit-subgenre-input').value.trim(); const updatedQuiz = { genre: document.getElementById('edit-genre-select').value, subgenre: subgenre, question: document.getElementById('edit-question').value.trim(), explanation: document.getElementById('edit-explanation').value.trim(), answer: { debits: getUserEntries('debit-entries-edit'), credits: getUserEntries('credit-entries-edit') } }; const result = await apiFetch(`/api/quizzes/${quizId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedQuiz) }); if (result) {
-    alert('問題が更新されました。');
-    await loadQuizzes();
-    showEditListView();
-} }
-async function handleDeleteQuiz(quizId) { if (confirm('この問題を本当に削除しますか？\nこの操作は元に戻せません。')) {
-    const result = await apiFetch(`/api/quizzes/${quizId}`, { method: 'DELETE' });
-    if (result) {
-        alert('問題を削除しました。');
-        await loadQuizzes();
+function handleUpdateQuiz(event) {
+    return __awaiter(this, void 0, void 0, function* () { event.preventDefault(); const quizId = document.getElementById('edit-quiz-id').value; const subgenreType = document.querySelector('input[name="edit-subgenre-type"]:checked').value; let subgenre = subgenreType === 'existing' ? document.getElementById('edit-subgenre-select').value : document.getElementById('edit-subgenre-input').value.trim(); const updatedQuiz = { genre: document.getElementById('edit-genre-select').value, subgenre: subgenre, question: document.getElementById('edit-question').value.trim(), explanation: document.getElementById('edit-explanation').value.trim(), answer: { debits: getUserEntries('debit-entries-edit'), credits: getUserEntries('credit-entries-edit') } }; const result = yield apiFetch(`/api/quizzes/${quizId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedQuiz) }); if (result) {
+        alert('問題が更新されました。');
+        yield loadQuizzes();
         showEditListView();
-    }
-} }
+    } });
+}
+function handleDeleteQuiz(quizId) {
+    return __awaiter(this, void 0, void 0, function* () { if (confirm('この問題を本当に削除しますか？\nこの操作は元に戻せません。')) {
+        const result = yield apiFetch(`/api/quizzes/${quizId}`, { method: 'DELETE' });
+        if (result) {
+            alert('問題を削除しました。');
+            yield loadQuizzes();
+            showEditListView();
+        }
+    } });
+}
 function getUserEntries(containerId) { const container = document.getElementById(containerId); const entries = []; container.querySelectorAll('.entry-row').forEach(row => { const account = row.querySelector('.account-input').value.trim(); const amountStr = row.querySelector('.amount-input').value.replace(/,/g, ''); const amount = parseInt(amountStr, 10); if (account && !isNaN(amount) && amount > 0) {
     entries.push({ account, amount });
 } }); return entries; }
@@ -715,36 +764,44 @@ function loadAnswer(containerId, entries) { const container = document.getElemen
 else {
     entries.forEach(entry => { const row = createEntryRow(); row.querySelector('.account-input').value = entry.account; row.querySelector('.amount-input').value = entry.amount ? Number(entry.amount).toLocaleString() : ''; container.appendChild(row); });
 } }
-async function showAccountManagementView() { await loadAccountOptions(); renderAccountManagementView(); showView('accountManagement'); }
+function showAccountManagementView() {
+    return __awaiter(this, void 0, void 0, function* () { yield loadAccountOptions(); renderAccountManagementView(); showView('accountManagement'); });
+}
 function renderAccountManagementView() { const container = document.getElementById('account-list-container'); container.innerHTML = ''; if (state.accountOptions.length === 0) {
     container.innerHTML = `<p class="text-slate-500">登録されている勘定科目がありません。</p>`;
     return;
 } state.accountOptions.forEach(acc => { const row = document.createElement('div'); row.className = 'grid grid-cols-[1fr,1fr,auto,auto] gap-4 items-center p-2 rounded-md hover:bg-slate-50'; const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.value = acc.name; nameInput.className = 'account-name-input w-full px-3 py-1 border border-gray-300 rounded-md'; const readingInput = document.createElement('input'); readingInput.type = 'text'; readingInput.value = acc.reading; readingInput.className = 'account-reading-input w-full px-3 py-1 border border-gray-300 rounded-md'; const updateBtn = document.createElement('button'); updateBtn.textContent = '更新'; updateBtn.className = 'edit-btn text-sm'; updateBtn.onclick = () => handleAccountUpdate(acc.id, nameInput.value, readingInput.value); const deleteBtn = document.createElement('button'); deleteBtn.textContent = '削除'; deleteBtn.className = 'delete-btn-list text-sm'; deleteBtn.onclick = () => handleAccountDelete(acc.id, acc.name); row.appendChild(nameInput); row.appendChild(readingInput); row.appendChild(updateBtn); row.appendChild(deleteBtn); container.appendChild(row); }); }
-async function handleAccountCreate(event) { event.preventDefault(); const nameInput = document.getElementById('new-account-name'); const readingInput = document.getElementById('new-account-reading'); const name = nameInput.value.trim(); const reading = readingInput.value.trim(); if (!name || !reading) {
-    alert('勘定科目名と読み仮名を入力してください。');
-    return;
-} const result = await apiFetch('/api/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, reading }) }); if (result) {
-    nameInput.value = '';
-    readingInput.value = '';
-    await loadAccountOptions();
-    renderAccountManagementView();
-} }
-async function handleAccountUpdate(id, name, reading) { if (!name.trim() || !reading.trim()) {
-    alert('勘定科目名と読み仮名は必須です。');
-    return;
-} const result = await apiFetch(`/api/accounts/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), reading: reading.trim() }) }); if (result) {
-    alert('更新しました。');
-    await loadAccountOptions();
-    renderAccountManagementView();
-} }
-async function handleAccountDelete(id, name) { if (confirm(`「${name}」を本当に削除しますか？`)) {
-    const result = await apiFetch(`/api/accounts/${id}`, { method: 'DELETE' });
-    if (result !== null) {
-        alert('削除しました。');
-        await loadAccountOptions();
+function handleAccountCreate(event) {
+    return __awaiter(this, void 0, void 0, function* () { event.preventDefault(); const nameInput = document.getElementById('new-account-name'); const readingInput = document.getElementById('new-account-reading'); const name = nameInput.value.trim(); const reading = readingInput.value.trim(); if (!name || !reading) {
+        alert('勘定科目名と読み仮名を入力してください。');
+        return;
+    } const result = yield apiFetch('/api/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, reading }) }); if (result) {
+        nameInput.value = '';
+        readingInput.value = '';
+        yield loadAccountOptions();
         renderAccountManagementView();
-    }
-} }
+    } });
+}
+function handleAccountUpdate(id, name, reading) {
+    return __awaiter(this, void 0, void 0, function* () { if (!name.trim() || !reading.trim()) {
+        alert('勘定科目名と読み仮名は必須です。');
+        return;
+    } const result = yield apiFetch(`/api/accounts/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), reading: reading.trim() }) }); if (result) {
+        alert('更新しました。');
+        yield loadAccountOptions();
+        renderAccountManagementView();
+    } });
+}
+function handleAccountDelete(id, name) {
+    return __awaiter(this, void 0, void 0, function* () { if (confirm(`「${name}」を本当に削除しますか？`)) {
+        const result = yield apiFetch(`/api/accounts/${id}`, { method: 'DELETE' });
+        if (result !== null) {
+            alert('削除しました。');
+            yield loadAccountOptions();
+            renderAccountManagementView();
+        }
+    } });
+}
 function getAvatarAndRank(level) {
     if (level >= 20)
         return { avatar: '👑', rank: '簿記マスター' };
@@ -756,12 +813,14 @@ function getAvatarAndRank(level) {
         return { avatar: '🐣', rank: 'ひよっこ仕訳人' };
     return { avatar: '🥚', rank: '駆け出し見習い' };
 }
-async function showAchievementsView() {
-    const achievements = await apiFetch('/api/achievements');
-    if (achievements) {
-        renderAchievementsView(achievements);
-        showView('achievements');
-    }
+function showAchievementsView() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const achievements = yield apiFetch('/api/achievements');
+        if (achievements) {
+            renderAchievementsView(achievements);
+            showView('achievements');
+        }
+    });
 }
 function renderAchievementsView(achievements) {
     const container = document.getElementById('achievements-container');
@@ -804,12 +863,14 @@ function showAchievementToast(achievement) {
         toast.addEventListener('transitionend', () => toast.remove());
     }, 5000);
 }
-async function showUserManagementView() {
-    const users = await apiFetch('/api/users');
-    if (users) {
-        renderUserManagementView(users);
-        showView('userManagement');
-    }
+function showUserManagementView() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const users = yield apiFetch('/api/users');
+        if (users) {
+            renderUserManagementView(users);
+            showView('userManagement');
+        }
+    });
 }
 function renderUserManagementView(users) {
     const container = document.getElementById('user-list-container');
@@ -846,49 +907,57 @@ function renderUserManagementView(users) {
         container.appendChild(row);
     });
 }
-async function handleRoleUpdate(userId, role) {
-    const result = await apiFetch(`/api/users/${userId}/role`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role })
-    });
-    if (result) {
-        alert('役割を更新しました。');
-        showUserManagementView(); // 再描画
-    }
-}
-async function handleCreateSpecialUser(event) {
-    event.preventDefault();
-    const form = event.target;
-    const username = document.getElementById('special-username').value;
-    const password = document.getElementById('special-password').value;
-    const role = document.getElementById('special-role').value;
-    const result = await apiFetch('/api/users/create_special', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, role })
-    });
-    if (result) {
-        alert('特別アカウントを作成しました。');
-        form.reset();
-        showUserManagementView(); // 再描画
-    }
-}
-async function handleDeleteUser(userId, username) {
-    if (confirm(`本当にユーザー「${username}」を削除しますか？この操作は元に戻せません。`)) {
-        const result = await apiFetch(`/api/users/${userId}`, { method: 'DELETE' });
+function handleRoleUpdate(userId, role) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const result = yield apiFetch(`/api/users/${userId}/role`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role })
+        });
         if (result) {
-            alert('ユーザーを削除しました。');
+            alert('役割を更新しました。');
             showUserManagementView(); // 再描画
         }
-    }
+    });
 }
-async function showStudentAnalyticsView() {
-    const data = await apiFetch('/api/analytics/student');
-    if (data) {
-        renderStudentAnalyticsView(data);
-        showView('studentAnalytics');
-    }
+function handleCreateSpecialUser(event) {
+    return __awaiter(this, void 0, void 0, function* () {
+        event.preventDefault();
+        const form = event.target;
+        const username = document.getElementById('special-username').value;
+        const password = document.getElementById('special-password').value;
+        const role = document.getElementById('special-role').value;
+        const result = yield apiFetch('/api/users/create_special', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, role })
+        });
+        if (result) {
+            alert('特別アカウントを作成しました。');
+            form.reset();
+            showUserManagementView(); // 再描画
+        }
+    });
+}
+function handleDeleteUser(userId, username) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (confirm(`本当にユーザー「${username}」を削除しますか？この操作は元に戻せません。`)) {
+            const result = yield apiFetch(`/api/users/${userId}`, { method: 'DELETE' });
+            if (result) {
+                alert('ユーザーを削除しました。');
+                showUserManagementView(); // 再描画
+            }
+        }
+    });
+}
+function showStudentAnalyticsView() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const data = yield apiFetch('/api/analytics/student');
+        if (data) {
+            renderStudentAnalyticsView(data);
+            showView('studentAnalytics');
+        }
+    });
 }
 function renderStudentAnalyticsView(data) {
     const { summary, weeklyActivity, previousDaySummary } = data;
@@ -944,15 +1013,17 @@ function renderStudentAnalyticsView(data) {
         }
     });
 }
-async function handleUpgradeClick() {
-    const config = await apiFetch('/api/stripe/config', {}, 'alert');
-    if (!config || !config.publishableKey) {
-        alert('Stripeの設定を読み込めませんでした。');
-        return;
-    }
-    const stripe = window.Stripe(config.publishableKey);
-    const session = await apiFetch('/api/subscription/create-checkout-session', { method: 'POST' }, 'alert');
-    if (session && session.sessionId) {
-        stripe.redirectToCheckout({ sessionId: session.sessionId });
-    }
+function handleUpgradeClick() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const config = yield apiFetch('/api/stripe/config', {}, 'alert');
+        if (!config || !config.publishableKey) {
+            alert('Stripeの設定を読み込めませんでした。');
+            return;
+        }
+        const stripe = window.Stripe(config.publishableKey);
+        const session = yield apiFetch('/api/subscription/create-checkout-session', { method: 'POST' }, 'alert');
+        if (session && session.sessionId) {
+            stripe.redirectToCheckout({ sessionId: session.sessionId });
+        }
+    });
 }

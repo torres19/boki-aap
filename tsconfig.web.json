@@ -1,12 +1,18 @@
 {
-    "extends": "./tsconfig.json",
-    "compilerOptions": {
-      "module": "amd",
-      "outFile": "./public/script.js",
-      "noEmit": false
-    },
-    "include": [
-      "src/web/**/*.ts"
-    ]
-  }
-  
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "ES6",
+    "outDir": "./public",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node"
+  },
+  "include": [
+    "src/web/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
