@@ -8,6 +8,18 @@ import pg from 'pg';
 import connectPgSimple from 'connect-pg-simple';
 import Stripe from 'stripe'; 
 
+// ★★★ 型定義の拡張 ★★★
+// express-sessionの型定義を拡張して、userプロパティを認識させる
+declare module 'express-session' {
+  interface SessionData {
+    user?: {
+      id: number;
+      username: string;
+      role: 'student' | 'teacher' | 'admin';
+    };
+  }
+}
+
 // --- 初期設定 ---
 const app = express();
 const port = process.env.PORT || 3000;
@@ -198,7 +210,7 @@ async function handleStripeWebhook(req: express.Request, res: express.Response) 
 }
 
 // --- APIエンドポイント ---
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', async (req: express.Request, res: express.Response) => {
     const { username, password } = req.body;
     const role = 'student';
     if (!username || !password || !role) { return res.status(400).json({ error: 'すべてのフィールドを入力してください。' }); }
@@ -212,7 +224,7 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', async (req: express.Request, res: express.Response) => {
     const { username, password } = req.body;
     try {
         const result = await pgPool.query("SELECT * FROM users WHERE username = $1", [username]);
@@ -225,7 +237,7 @@ app.post('/api/login', async (req, res) => {
             req.session.user = { id: user.id, username: user.username, role: user.role };
             await pgPool.query('INSERT INTO login_history (user_id) VALUES ($1)', [user.id]);
             
-            req.session.save((err) => {
+            req.session.save((err: any) => {
                 if (err) {
                     console.error("Session save error:", err);
                     return res.status(500).json({ error: 'セッションの保存に失敗しました。' });
@@ -240,18 +252,18 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-app.post('/api/logout', (req, res) => {
+app.post('/api/logout', (req: express.Request, res: express.Response) => {
     req.session.destroy(err => {
         if (err) { return res.status(500).json({ error: 'ログアウトに失敗しました。' }); }
         res.clearCookie('connect.sid');
         res.status(204).send();
     });
 });
-app.get('/api/session', (req, res) => {
+app.get('/api/session', (req: express.Request, res: express.Response) => {
     res.json({ user: req.session.user || null });
 });
 
-app.get('/api/users', requireAdmin, async (req, res) => {
+app.get('/api/users', requireAdmin, async (req: express.Request, res: express.Response) => {
     try {
         const result = await pgPool.query("SELECT id, username, role, subscription_status FROM users ORDER BY id");
         res.json(result.rows);
@@ -260,7 +272,7 @@ app.get('/api/users', requireAdmin, async (req, res) => {
     }
 });
 
-app.put('/api/users/:id/role', requireAdmin, async (req, res) => {
+app.put('/api/users/:id/role', requireAdmin, async (req: express.Request, res: express.Response) => {
     const { id } = req.params;
     const { role } = req.body;
     if (!['student', 'teacher', 'admin'].includes(role)) {
@@ -274,7 +286,7 @@ app.put('/api/users/:id/role', requireAdmin, async (req, res) => {
     }
 });
 
-app.post('/api/users/create_special', requireAdmin, async (req, res) => {
+app.post('/api/users/create_special', requireAdmin, async (req: express.Request, res: express.Response) => {
     const { username, password, role } = req.body;
     if (!username || !password || !role) { return res.status(400).json({ error: 'すべてのフィールドを入力してください。' }); }
      try {
@@ -290,7 +302,7 @@ app.post('/api/users/create_special', requireAdmin, async (req, res) => {
     }
 });
 
-app.delete('/api/users/:id', requireAdmin, async (req, res) => {
+app.delete('/api/users/:id', requireAdmin, async (req: express.Request, res: express.Response) => {
     const { id } = req.params;
     if (req.session.user!.id === parseInt(id, 10)) {
         return res.status(400).json({ error: '自分自身のアカウントは削除できません。' });
@@ -303,11 +315,11 @@ app.delete('/api/users/:id', requireAdmin, async (req, res) => {
     }
 });
 
-app.get('/api/stripe/config', requireLogin, (req, res) => {
+app.get('/api/stripe/config', requireLogin, (req: express.Request, res: express.Response) => {
     res.json({ publishableKey: process.env.STRIPE_PUBLISHABLE_KEY });
 });
 
-app.post('/api/subscription/create-checkout-session', requireLogin, async (req, res) => {
+app.post('/api/subscription/create-checkout-session', requireLogin, async (req: express.Request, res: express.Response) => {
     const userId = req.session.user!.id;
     try {
         const userRes = await pgPool.query("SELECT username, stripe_customer_id FROM users WHERE id = $1", [userId]);
@@ -345,7 +357,7 @@ app.post('/api/subscription/create-checkout-session', requireLogin, async (req, 
 });
 
 
-app.get('/api/subgenres/:genre/:subgenre/questions', requireLogin, async (req, res) => {
+app.get('/api/subgenres/:genre/:subgenre/questions', requireLogin, async (req: express.Request, res: express.Response) => {
     const { genre, subgenre } = req.params;
     const userId = req.session.user!.id;
     
@@ -385,7 +397,7 @@ app.get('/api/subgenres/:genre/:subgenre/questions', requireLogin, async (req, r
     }
 });
 
-app.post('/api/quizzes/:quizId/toggle_favorite', requireLogin, async (req, res) => {
+app.post('/api/quizzes/:quizId/toggle_favorite', requireLogin, async (req: express.Request, res: express.Response) => {
     const { quizId } = req.params;
     const userId = req.session.user!.id;
     try {
@@ -404,7 +416,7 @@ app.post('/api/quizzes/:quizId/toggle_favorite', requireLogin, async (req, res) 
     }
 });
 
-app.get('/api/quizzes', requireLogin, async (req, res) => {
+app.get('/api/quizzes', requireLogin, async (req: express.Request, res: express.Response) => {
     try {
         const result = await pgPool.query(`
             SELECT 
@@ -422,7 +434,7 @@ app.get('/api/quizzes', requireLogin, async (req, res) => {
             GROUP BY quiz_id
         `, [req.session.user!.id]);
 
-        const attemptsMap = new Map(attemptsRes.rows.map(a => [a.quiz_id, a]));
+        const attemptsMap = new Map(attemptsRes.rows.map((a: any) => [a.quiz_id, a]));
 
         const quizzesWithAttempts = result.rows.map(q => {
             const attempts = attemptsMap.get(q.id);
@@ -437,7 +449,7 @@ app.get('/api/quizzes', requireLogin, async (req, res) => {
         return handleDbError(res, err, 'Get Quizzes');
     }
 });
-app.post('/api/quizzes', requireTeacher, async (req, res) => {
+app.post('/api/quizzes', requireTeacher, async (req: express.Request, res: express.Response) => {
     const { genre, subgenre, question, answer, explanation } = req.body;
     if (!genre || !subgenre || !question || !answer) { return res.status(400).json({ error: 'ジャンル、小ジャンル、問題文、答えは必須です。' }); }
     try {
@@ -447,7 +459,7 @@ app.post('/api/quizzes', requireTeacher, async (req, res) => {
         return handleDbError(res, err, 'Create Quiz');
     }
 });
-app.get('/api/quizzes/:id', requireTeacher, async (req, res) => {
+app.get('/api/quizzes/:id', requireTeacher, async (req: express.Request, res: express.Response) => {
     const { id } = req.params;
     try {
         const result = await pgPool.query("SELECT * FROM quizzes WHERE id = $1", [id]);
@@ -457,7 +469,7 @@ app.get('/api/quizzes/:id', requireTeacher, async (req, res) => {
         return handleDbError(res, err, 'Get Quiz By Id');
     }
 });
-app.put('/api/quizzes/:id', requireTeacher, async (req, res) => {
+app.put('/api/quizzes/:id', requireTeacher, async (req: express.Request, res: express.Response) => {
     const { id } = req.params;
     const { genre, subgenre, question, answer, explanation } = req.body;
     if (!genre || !subgenre || !question || !answer) { return res.status(400).json({ error: 'ジャンル、小ジャンル、問題文、答えは必須です。' }); }
@@ -469,7 +481,7 @@ app.put('/api/quizzes/:id', requireTeacher, async (req, res) => {
         return handleDbError(res, err, 'Update Quiz');
     }
 });
-app.delete('/api/quizzes/:id', requireTeacher, async (req, res) => {
+app.delete('/api/quizzes/:id', requireTeacher, async (req: express.Request, res: express.Response) => {
     const { id } = req.params;
     try {
         const result = await pgPool.query("DELETE FROM quizzes WHERE id = $1", [id]);
@@ -480,7 +492,7 @@ app.delete('/api/quizzes/:id', requireTeacher, async (req, res) => {
     }
 });
 
-app.post('/api/submit_answer', requireLogin, async (req, res) => {
+app.post('/api/submit_answer', requireLogin, async (req: express.Request, res: express.Response) => {
     const { quiz_id, user_answer, questionsInSession, score } = req.body;
     const user_id = req.session.user!.id;
     if (!quiz_id || !user_answer) { return res.status(400).json({ error: '不正なリクエストです。' }); }
@@ -521,7 +533,7 @@ app.post('/api/submit_answer', requireLogin, async (req, res) => {
         return handleDbError(res, err, 'Submit Answer');
     }
 });
-app.get('/api/profile', requireLogin, async (req, res) => {
+app.get('/api/profile', requireLogin, async (req: express.Request, res: express.Response) => {
     const userId = req.session.user!.id;
     try {
         const userRes = await pgPool.query("SELECT username, level, experience, subscription_status FROM users WHERE id = $1", [userId]);
@@ -535,7 +547,7 @@ app.get('/api/profile', requireLogin, async (req, res) => {
     }
 });
 
-app.get('/api/achievements', requireLogin, async (req, res) => {
+app.get('/api/achievements', requireLogin, async (req: express.Request, res: express.Response) => {
     const userId = req.session.user!.id;
     try {
         const result = await pgPool.query(`
@@ -552,11 +564,11 @@ app.get('/api/achievements', requireLogin, async (req, res) => {
     }
 });
 
-app.get('/api/analytics/by_student', requireTeacher, async (req, res) => {
+app.get('/api/analytics/by_student', requireTeacher, async (req: express.Request, res: express.Response) => {
     try {
         const result = await pgPool.query(`SELECT u.username, q.genre, q.subgenre, a.is_correct FROM attempts a JOIN users u ON a.user_id = u.id JOIN quizzes q ON a.quiz_id = q.id WHERE u.role = 'student'`);
         const analytics: any = {};
-        result.rows.forEach(row => {
+        result.rows.forEach((row: any) => {
             if (!analytics[row.username]) analytics[row.username] = { byGenre: {} };
             if (!analytics[row.username].byGenre[row.genre]) analytics[row.username].byGenre[row.genre] = {};
             if (!analytics[row.username].byGenre[row.genre][row.subgenre]) { analytics[row.username].byGenre[row.genre][row.subgenre] = { attempts: 0, corrects: 0 }; }
@@ -569,7 +581,7 @@ app.get('/api/analytics/by_student', requireTeacher, async (req, res) => {
     }
 });
 
-app.get('/api/analytics/dashboard', requireTeacher, async (req, res) => {
+app.get('/api/analytics/dashboard', requireTeacher, async (req: express.Request, res: express.Response) => {
     try {
         const summaryQuery = `
             SELECT
@@ -630,10 +642,10 @@ app.get('/api/analytics/dashboard', requireTeacher, async (req, res) => {
         ]);
         
         const allStudentsRes = await pgPool.query("SELECT created_at FROM users WHERE role = 'student' ORDER BY created_at ASC");
-        const cumulativeStudents = studentGrowthRes.rows.map(dayData => {
+        const cumulativeStudents = studentGrowthRes.rows.map((dayData: any) => {
             const day = new Date(dayData.day);
             day.setHours(23, 59, 59, 999);
-            const count = allStudentsRes.rows.filter(u => new Date(u.created_at) <= day).length;
+            const count = allStudentsRes.rows.filter((u: any) => new Date(u.created_at) <= day).length;
             return {
                 day: dayData.day,
                 count: count
@@ -654,7 +666,7 @@ app.get('/api/analytics/dashboard', requireTeacher, async (req, res) => {
 });
 
 
-app.get('/api/analytics/genre/:genre', requireTeacher, async (req, res) => {
+app.get('/api/analytics/genre/:genre', requireTeacher, async (req: express.Request, res: express.Response) => {
     const { genre } = req.params;
     try {
         const result = await pgPool.query(`
@@ -673,7 +685,7 @@ app.get('/api/analytics/genre/:genre', requireTeacher, async (req, res) => {
         `, [genre]);
 
         const results: any = {};
-        result.rows.forEach(row => {
+        result.rows.forEach((row: any) => {
             if (!results[row.username]) {
                 results[row.username] = {};
             }
@@ -689,7 +701,7 @@ app.get('/api/analytics/genre/:genre', requireTeacher, async (req, res) => {
 });
 
 
-app.get('/api/analytics/:username', requireTeacher, async (req, res) => {
+app.get('/api/analytics/:username', requireTeacher, async (req: express.Request, res: express.Response) => {
     const { username } = req.params;
     const { genre, subgenre } = req.query;
     try {
@@ -706,7 +718,7 @@ app.get('/api/analytics/:username', requireTeacher, async (req, res) => {
     }
 });
 
-app.post('/api/study_session/start', requireLogin, async (req, res) => {
+app.post('/api/study_session/start', requireLogin, async (req: express.Request, res: express.Response) => {
     try {
         const result = await pgPool.query("INSERT INTO study_sessions (user_id) VALUES ($1) RETURNING id", [req.session.user!.id]);
         res.status(201).json({ studySessionId: result.rows[0].id });
@@ -715,7 +727,7 @@ app.post('/api/study_session/start', requireLogin, async (req, res) => {
     }
 });
 
-app.post('/api/study_session/end', requireLogin, async (req, res) => {
+app.post('/api/study_session/end', requireLogin, async (req: express.Request, res: express.Response) => {
     const { studySessionId } = req.body;
     if (!studySessionId) { return res.status(400).json({ error: 'セッションIDが必要です。' }); }
     try {
@@ -726,7 +738,7 @@ app.post('/api/study_session/end', requireLogin, async (req, res) => {
     }
 });
 
-app.get('/api/analytics/student', requireLogin, async (req, res) => {
+app.get('/api/analytics/student', requireLogin, async (req: express.Request, res: express.Response) => {
     const userId = req.session.user!.id;
     try {
         const todayStatsQuery = `
@@ -772,7 +784,7 @@ app.get('/api/analytics/student', requireLogin, async (req, res) => {
 });
 
 
-app.get('/api/accounts', requireLogin, async (req, res) => {
+app.get('/api/accounts', requireLogin, async (req: express.Request, res: express.Response) => {
     try {
         const result = await pgPool.query("SELECT * FROM account_options ORDER BY reading");
         res.json(result.rows);
@@ -780,7 +792,7 @@ app.get('/api/accounts', requireLogin, async (req, res) => {
         return handleDbError(res, err, 'Get Accounts');
     }
 });
-app.post('/api/accounts', requireTeacher, async (req, res) => {
+app.post('/api/accounts', requireTeacher, async (req: express.Request, res: express.Response) => {
     const { name, reading } = req.body;
     try {
         const result = await pgPool.query("INSERT INTO account_options (name, reading) VALUES ($1, $2) RETURNING *", [name, reading]);
@@ -790,7 +802,7 @@ app.post('/api/accounts', requireTeacher, async (req, res) => {
         return handleDbError(res, err, 'Create Account');
     }
 });
-app.put('/api/accounts/:id', requireTeacher, async (req, res) => {
+app.put('/api/accounts/:id', requireTeacher, async (req: express.Request, res: express.Response) => {
     const { id } = req.params;
     const { name, reading } = req.body;
     try {
@@ -802,7 +814,7 @@ app.put('/api/accounts/:id', requireTeacher, async (req, res) => {
         return handleDbError(res, err, 'Update Account');
     }
 });
-app.delete('/api/accounts/:id', requireTeacher, async (req, res) => {
+app.delete('/api/accounts/:id', requireTeacher, async (req: express.Request, res: express.Response) => {
     const { id } = req.params;
     try {
         const result = await pgPool.query("DELETE FROM account_options WHERE id = $1", [id]);
@@ -827,4 +839,3 @@ const startServer = async () => {
 };
 
 startServer();
-
